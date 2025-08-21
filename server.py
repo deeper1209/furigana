@@ -98,27 +98,21 @@ def strip_existing_furigana(source: str) -> str:
 	return cleaned
 
 def run_to_ruby(segment: str, skip_kana: bool, hints: dict) -> str:
-	# segment is a contiguous Japanese run (kanji/kana/prolonged)
-	if not has_kanji(segment):
-		return segment if skip_kana else f"<ruby><rb>{segment}</rb><rt>{kata_to_hira(segment)}</rt></ruby>"
-	# Prefer user-provided exact hint
-	if segment in hints:
-		pref = hints[segment]
-		prefix, core, suffix, reading_core = align_okurigana(segment, pref)
-		if core and reading_core:
-			return f"{prefix}<ruby><rb>{core}</rb><rt>{reading_core}</rt></ruby>{suffix}"
-	# Use Sudachi to get combined reading for the whole run
-	reading_hira = tokenize_hiragana(segment)
-	if reading_hira:
-		prefix, core, suffix, reading_core = align_okurigana(segment, reading_hira)
-		if core and reading_core:
-			return f"{prefix}<ruby><rb>{core}</rb><rt>{reading_core}</rt></ruby>{suffix}"
-	# Fallback: per-token ruby
+	"""Annotate per Sudachi token for stability and clarity, with user hints."""
 	parts = []
 	for m in _sudachi.tokenize(segment, _mode):
 		surf = m.surface()
+		if not has_kanji(surf):
+			parts.append(surf)
+			continue
+		hinted = hints.get(surf)
+		if hinted:
+			prefix, core, suffix, reading_core = align_okurigana(surf, hinted)
+			if core and reading_core:
+				parts.append(f"{prefix}<ruby><rb>{core}</rb><rt>{reading_core}</rt></ruby>{suffix}")
+				continue
 		reading = m.reading_form() or ""
-		if not reading and conv and has_kanji(surf):
+		if not reading and conv:
 			reading = conv.do(surf)
 		parts.append(token_to_ruby(surf, reading, skip_kana))
 	return "".join(parts)
