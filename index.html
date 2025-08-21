@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>일본어 후리가나 생성기</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://unpkg.com/kuroshiro/dist/kuroshiro.min.js"></script>
+    <script src="https://unpkg.com/kuroshiro-analyzer-kuromoji/dist/kuroshiro-analyzer-kuromoji.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dist/kuromoji.js"></script>
+    <script src="config.js"></script>
+</head>
+<body>
+    <!-- 벚꽃 애니메이션 배경 -->
+    <div class="sakura-container">
+        <div class="sakura"></div>
+        <div class="sakura"></div>
+        <div class="sakura"></div>
+        <div class="sakura"></div>
+        <div class="sakura"></div>
+        <div class="sakura"></div>
+        <div class="sakura"></div>
+        <div class="sakura"></div>
+        <div class="sakura"></div>
+        <div class="sakura"></div>
+        <div class="sakura"></div>
+        <div class="sakura"></div>
+        <div class="sakura"></div>
+        <div class="sakura"></div>
+        <div class="sakura"></div>
+        <div class="sakura"></div>
+        <div class="sakura"></div>
+        <div class="sakura"></div>
+        <div class="sakura"></div>
+        <div class="sakura"></div>
+    </div>
+
+    <div class="container">
+        <!-- 헤더 -->
+        <header class="header">
+            <div class="header-left">
+                <div class="logo">
+                    <i class="fas fa-sakura"></i>
+                </div>
+                <div class="title-group">
+                    <h1 class="title">일본어 후리가나 생성기</h1>
+                    <p class="subtitle">Japanese Furigana Generator</p>
+                </div>
+            </div>
+            <button class="settings-btn" id="settingsBtn" title="설정">
+                <i class="fas fa-cog"></i>
+            </button>
+        </header>
+
+        <!-- 설정 모달 -->
+        <div class="modal" id="settingsModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>설정</h2>
+                    <button class="close-btn" id="closeSettings">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="setting-group">
+                        <label for="fontSize">메인 글자 크기 (10-40):</label>
+                        <input type="range" id="fontSize" min="10" max="40" value="16">
+                        <span id="fontSizeValue">16</span>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <label for="furiganaSize">후리가나 글자 크기 (5-25):</label>
+                        <input type="range" id="furiganaSize" min="5" max="25" value="12">
+                        <span id="furiganaSizeValue">12</span>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <label>후리가나 형식 및 색상:</label>
+                        <div class="format-color-row">
+                            <select id="furiganaFormat">
+                                <option value="ruby">루비 형식</option>
+                                <option value="bracket">괄호 형식</option>
+                            </select>
+                                                         <select id="furiganaColor">
+                                 <option value="black">검정색</option>
+                                 <option value="pink">분홍색</option>
+                                 <option value="blue">파란색</option>
+                                 <option value="green">초록색</option>
+                             </select>
+                        </div>
+                    </div>
+
+                    
+                </div>
+            </div>
+        </div>
+
+        <!-- 메인 콘텐츠 -->
+        <main class="main-content">
+            <!-- 입력 섹션 -->
+            <section class="input-section">
+                <div class="section-header">
+                    <i class="fas fa-pencil-alt"></i>
+                    <h2>텍스트 입력</h2>
+                </div>
+                <textarea 
+                    id="inputText" 
+                    placeholder="일본어를 입력하세요..."
+                    rows="8"
+                ></textarea>
+                <div class="action-buttons">
+                    <button id="convertBtn" class="convert-btn">
+                        <i class="fas fa-sync-alt"></i> 변환
+                    </button>
+                    <button class="camera-btn" id="cameraBtn" title="카메라로 텍스트 인식">
+                        <i class="fas fa-camera"></i> 카메라
+                    </button>
+                    <button class="clear-btn" id="clearBtn" title="입력 내용 삭제">
+                        <i class="fas fa-trash"></i> 삭제
+                    </button>
+                </div>
+            </section>
+
+            <!-- 결과 섹션 -->
+            <section class="result-section">
+                <div class="section-header">
+                    <i class="fas fa-file-alt"></i>
+                    <h2>변환 결과</h2>
+                </div>
+                <div id="resultContainer" class="result-container">
+                    <p class="placeholder">변환된 결과가 여기에 표시됩니다.</p>
+                </div>
+                <div class="result-actions">
+                    <button id="copyBtn" class="action-btn copy-btn" style="display: none;">
+                        <i class="fas fa-copy"></i> 복사
+                    </button>
+                    <div class="export-dropdown">
+                        <button id="exportBtn" class="action-btn export-btn" style="display: none;">
+                            <i class="fas fa-download"></i> 내보내기
+                        </button>
+                        <div class="export-menu" id="exportMenu">
+                            <button class="export-option" data-format="pdf">
+                                <i class="fas fa-file-pdf"></i> PDF
+                            </button>
+                            <button class="export-option" data-format="docx">
+                                <i class="fas fa-file-word"></i> MS Word
+                            </button>
+                            <button class="export-option" data-format="html">
+                                <i class="fab fa-google"></i> Google Docs
+                            </button>
+                        </div>
+                    </div>
+                    <button id="screenshotBtn" class="action-btn screenshot-btn" style="display: none;">
+                        <i class="fas fa-camera"></i> 캡쳐
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <!-- 푸터 -->
+        <footer class="footer">
+            <p>&copy; 2025 일본어 후리가나 생성기</p>
+            <p><span class="developer-name">SeoungHwan</span> / <span class="developer-email">coke1209@naver.com</span></p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
