@@ -10,7 +10,7 @@
 - New Web Service → 저장소 선택
 - Build Command:
 ```
-pip install --upgrade pip && pip install -r requirements.txt
+pip install --upgrade pip setuptools wheel && pip install --no-cache-dir --prefer-binary -r requirements.txt
 ```
 - Start Command:
 ```
@@ -31,6 +31,8 @@ pip install -r requirements.txt
 uvicorn server:app --reload --host 0.0.0.0 --port 8000
 ```
 브라우저에서 Render 배포 URL 또는 `http://localhost:8000` 접속.
+
+메모: 빌드 메모리 이슈가 있으면 최소 사전(`sudachidict-core`)로 시작 후 플랜을 상향해 `sudachidict-full`로 전환하세요.
 
 ## 5) 사용 방법
 1. 텍스트를 입력하고 변환을 누릅니다.

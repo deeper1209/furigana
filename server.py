@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sudachipy import dictionary, tokenizer
+from sudachipy import config as sudachi_config
 import re
 
 try:
