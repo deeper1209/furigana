@@ -6,16 +6,11 @@
 - Render 계정 생성
 - Git 저장소에 본 프로젝트 업로드
 
-## 2) Render Web Service 생성
+## 2) Render Web Service 생성 (Docker 방식)
 - New Web Service → 저장소 선택
-- Build Command:
-```
-pip install --upgrade pip setuptools wheel && pip install --no-cache-dir --prefer-binary -r requirements.txt
-```
-- Start Command:
-```
-uvicorn server:app --host 0.0.0.0 --port $PORT
-```
+- Type: Web Service
+- Environment: Docker
+- `render.yaml`와 `Dockerfile`을 인식하여 자동 빌드/시작
 - Region/Instance는 sudachidict-full을 감당할 수 있는 플랜으로 선택
 
 ## 3) 환경
