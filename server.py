@@ -97,24 +97,87 @@ def strip_existing_furigana(source: str) -> str:
 	cleaned = re.sub(r"([\u3400-\u9FFF\uF900-\uFAFF々〻]+)\s*[\(（]([\u3040-\u30ffー]+)[\)）]", r"\1", cleaned)
 	return cleaned
 
+def _is_compound_candidate(m) -> bool:
+	"""Heuristic: group kanji nouns/proper-nouns into one compound."""
+	try:
+		pos = m.part_of_speech()  # (品詞1, 品詞2, ...)
+		surf = m.surface()
+		return has_kanji(surf) and (pos and (pos[0] == '名詞' or pos[1] in ('固有名詞', '一般')))
+	except Exception:
+		return has_kanji(m.surface())
+
+def _reading_for_morpheme(m) -> str:
+	reading = m.reading_form() or ""
+	if not reading and conv and has_kanji(m.surface()):
+		reading = conv.do(m.surface())
+	return reading
+
 def run_to_ruby(segment: str, skip_kana: bool, hints: dict) -> str:
-	"""Annotate per Sudachi token for stability and clarity, with user hints."""
+	"""Annotate with compound-aware grouping: merge consecutive kanji nouns into a single ruby.
+	Fallback to per-token when grouping fails."""
+	# If Sudachi unavailable
+	if _sudachi is None or _mode is None:
+		if not has_kanji(segment):
+			return segment
+		reading = conv.do(segment) if conv else ""
+		return token_to_ruby(segment, reading, skip_kana)
+
 	parts = []
+	group_surfaces = []
+	group_readings = []
+
+	def flush_group():
+		"""Emit current group with best effort; fallback to per-token if needed."""
+		nonlocal group_surfaces, group_readings, parts
+		if not group_surfaces:
+			return
+		surf_concat = ''.join(group_surfaces)
+		reading_concat_kata = ''.join(group_readings)
+		reading_concat_hira = kata_to_hira(reading_concat_kata)
+		# User hint has highest priority for the whole group
+		hinted = hints.get(surf_concat)
+		if hinted:
+			prefix, core, suffix, reading_core = align_okurigana(surf_concat, hinted)
+			if core and reading_core:
+				parts.append(f"{prefix}<ruby><rb>{core}</rb><rt>{reading_core}</rt></ruby>{suffix}")
+				group_surfaces, group_readings = [], []
+				return
+		# Try aligned compound
+		prefix, core, suffix, reading_core = align_okurigana(surf_concat, reading_concat_hira)
+		if core and reading_core:
+			parts.append(f"{prefix}<ruby><rb>{core}</rb><rt>{reading_core}</rt></ruby>{suffix}")
+		else:
+			# Per-token fallback
+			for s, r in zip(group_surfaces, group_readings):
+				parts.append(token_to_ruby(s, r, skip_kana))
+		group_surfaces, group_readings = [], []
+
 	for m in _sudachi.tokenize(segment, _mode):
 		surf = m.surface()
 		if not has_kanji(surf):
+			# Flush any ongoing group, then append kana/punct as-is
+			flush_group()
 			parts.append(surf)
 			continue
-		hinted = hints.get(surf)
-		if hinted:
-			prefix, core, suffix, reading_core = align_okurigana(surf, hinted)
+		# Single-token user hint
+		hint = hints.get(surf)
+		if hint:
+			flush_group()
+			prefix, core, suffix, reading_core = align_okurigana(surf, hint)
 			if core and reading_core:
 				parts.append(f"{prefix}<ruby><rb>{core}</rb><rt>{reading_core}</rt></ruby>{suffix}")
 				continue
-		reading = m.reading_form() or ""
-		if not reading and conv:
-			reading = conv.do(surf)
-		parts.append(token_to_ruby(surf, reading, skip_kana))
+		# Decide grouping
+		if _is_compound_candidate(m):
+			group_surfaces.append(surf)
+			group_readings.append(_reading_for_morpheme(m))
+		else:
+			flush_group()
+			reading = _reading_for_morpheme(m)
+			parts.append(token_to_ruby(surf, reading, skip_kana))
+
+	# Flush tail
+	flush_group()
 	return "".join(parts)
 
 # Optional fallback: pykakasi for unknown readings
