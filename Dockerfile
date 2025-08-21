@@ -4,13 +4,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_ONLY_BINARY=:all: \
-    PIP_NO_BUILD_ISOLATION=1 \
     CARGO_HOME=/app/.cargo \
     RUSTUP_HOME=/app/.rustup
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends build-essential rustc cargo pkg-config \
+    && apt-get install -y --no-install-recommends \
+       build-essential rustc cargo pkg-config python3-dev libssl-dev \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /app/.cargo /app/.rustup
 
@@ -18,7 +17,7 @@ WORKDIR /app
 
 COPY requirements.txt /app/requirements.txt
 RUN pip install --upgrade pip setuptools wheel \
-    && pip install --prefer-binary -r requirements.txt
+    && pip install -r requirements.txt
 
 COPY . /app
 
